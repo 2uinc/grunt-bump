@@ -6,6 +6,7 @@
  * grunt bump:patch
  * grunt bump:minor
  * grunt bump:major
+ * grunt bump:prerelease
  *
  * @author Vojta Jina <vojta.jina@gmail.com>
  * @author Mathias Paumgarten <mail@mathias-paumgarten.com>
@@ -23,6 +24,7 @@ module.exports = function(grunt) {
   grunt.registerTask('bump', DESC, function(versionType, incOrCommitOnly) {
     var opts = this.options({
       bumpVersion: true,
+      preReleaseIdentifier: '-',
       files: ['package.json'],
       updateConfigs: [], // array of config properties to update (with files)
       commit: true,
@@ -77,7 +79,7 @@ module.exports = function(grunt) {
 
     var globalVersion; // when bumping multiple files
     var gitVersion;    // when bumping using `git describe`
-    var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)([\d||A-a|.|-]*)([\'|\"]?)/i;
+    var VERSION_REGEXP = '/'+'([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)(\d+\.\d+\.\d+)('+preReleaseIdentifier+'\.?\d+)?([\w-]*)?([\'|\"]?)'+'/i';
 
 
     if (opts.globalReplace) {
@@ -101,9 +103,9 @@ module.exports = function(grunt) {
     runIf(opts.bumpVersion, function() {
       grunt.file.expand(opts.files).forEach(function(file, idx) {
         var version = null;
-        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
-          gitVersion = gitVersion && parsedVersion + '-' + gitVersion;
-          version = exactVersionToSet || gitVersion || semver.inc(parsedVersion, versionType || 'patch');
+        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, preReleaseVersion, notSemver, suffix) {
+          gitVersion = gitVersion && parsedVersion + preReleaseVersion + preReleaseIdentifier + gitVersion;
+          version = exactVersionToSet || gitVersion || semver.inc(parsedVersion, versionType || 'patch', preReleaseIdentifier);  // FIXME
           return prefix + version + suffix;
         });
 
