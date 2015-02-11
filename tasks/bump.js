@@ -6,6 +6,11 @@
  * grunt bump:patch
  * grunt bump:minor
  * grunt bump:major
+ * grunt bump:prepatch
+ * grunt bump:preminor
+ * grunt bump:premajor
+ * grunt bump:prerelease
+ * grunt bump:release
  *
  * @author Vojta Jina <vojta.jina@gmail.com>
  * @author Mathias Paumgarten <mail@mathias-paumgarten.com>
@@ -77,8 +82,7 @@ module.exports = function(grunt) {
 
     var globalVersion; // when bumping multiple files
     var gitVersion;    // when bumping using `git describe`
-    var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)([\d||A-a|.|-]*)([\'|\"]?)/i;
-
+    var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)(\d+\.\d+\.\d+)(-rc\.?\d+)?([\w-]*)?([\'|\"]?)/i;
 
     if (opts.globalReplace) {
       VERSION_REGEXP = new RegExp(VERSION_REGEXP.source, 'gi');
@@ -96,14 +100,26 @@ module.exports = function(grunt) {
       });
     });
 
-
     // BUMP ALL FILES
     runIf(opts.bumpVersion, function() {
       grunt.file.expand(opts.files).forEach(function(file, idx) {
         var version = null;
-        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
-          gitVersion = gitVersion && parsedVersion + '-' + gitVersion;
-          version = exactVersionToSet || gitVersion || semver.inc(parsedVersion, versionType || 'patch');
+        var bumpFrom
+        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, preReleaseVersion, notSemver, suffix) {
+          if(preReleaseVersion !== undefined) {
+            bumpFrom = parsedVersion+preReleaseVersion
+          } else {
+            bumpFrom = parsedVersion
+          }
+          if(versionType === 'release') {
+            if(preReleaseVersion === undefined) {
+              grunt.warn('Trying to release a non-prerelease version.  The current version has been released.')
+            } else {
+              version = parsedVersion
+            }
+          } else {
+           version = exactVersionToSet || gitVersion || semver.inc(bumpFrom, versionType, 'rc');
+          }
           return prefix + version + suffix;
         });
 
