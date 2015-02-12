@@ -39,7 +39,7 @@ module.exports = function(grunt) {
       pushTo: 'upstream',
       gitDescribeOptions: '--tags --always --abbrev=1 --dirty=-d',
       globalReplace: false,
-      prereleaseName: 'rc';
+      prereleaseName: 'rc'
     });
 
     var dryRun = grunt.option('dry-run');
@@ -82,12 +82,11 @@ module.exports = function(grunt) {
 
     var globalVersion; // when bumping multiple files
     var gitVersion;    // when bumping using `git describe`
-    //  FIX ME get opts.prereleaseName in regex
-    var VERSION_REGEXP = '/[\'|\"]?version[\'|\"]?[ ]*:[ ]*([\'|\"])?(\d+\.\d+(\.\d)?(-'+opts.prereleaseName+'.\d+)?)[\'|\"]?/i';
+    var VERSION_REGEXP = new RegExp('([\\\'|\\\"]?version[\\\'|\\\"]?[ ]*:[ ]*[\\\'|\\\"]?)(\\\d+\\\.\\\d+\\\.\\\d+(-'+opts.prereleaseName+'\\\.\\\d+)?)[\\\w-]*?([\\\'|\\\"]?)', 'i');
+
     if (opts.globalReplace) {
       VERSION_REGEXP = new RegExp(VERSION_REGEXP.source, 'gi');
     }
-
 
     // GET VERSION FROM GIT
     runIf(opts.bumpVersion && versionType === 'git', function() {
@@ -105,10 +104,9 @@ module.exports = function(grunt) {
       grunt.file.expand(opts.files).forEach(function(file, idx) {
         var version = null;
         var bumpFrom;
-        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(quote, parsedVersion) {
+        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, git, suffix) {
            version = exactVersionToSet || gitVersion || semver.inc(parsedVersion, versionType, opts.prereleaseName);
-          }
-          return quote + version + quote;
+          return prefix + version + suffix;
         });
 
         if (!version) {
