@@ -104,15 +104,15 @@ module.exports = function(grunt) {
     runIf(opts.bumpVersion, function() {
       grunt.file.expand(opts.files).forEach(function(file, idx) {
         var version = null;
-        var bumpFrom
-        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, preReleaseVersion, notSemver, suffix) {
-          if(preReleaseVersion !== undefined) {
-            bumpFrom = parsedVersion+preReleaseVersion
+        var bumpFrom;
+        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, preRelVer, git, suffix) {
+          if(preRelVer !== undefined) {
+            bumpFrom = parsedVersion+preRelVer
           } else {
             bumpFrom = parsedVersion
           }
           if(versionType === 'release') {
-            if(preReleaseVersion === undefined) {
+            if(preRelVer === undefined) {
               grunt.warn('Trying to release a non-prerelease version.  The current version has been released.')
             } else {
               version = parsedVersion
