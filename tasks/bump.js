@@ -10,7 +10,6 @@
  * grunt bump:preminor
  * grunt bump:premajor
  * grunt bump:prerelease
- * grunt bump:release
  *
  * @author Vojta Jina <vojta.jina@gmail.com>
  * @author Mathias Paumgarten <mail@mathias-paumgarten.com>
@@ -39,7 +38,8 @@ module.exports = function(grunt) {
       push: true,
       pushTo: 'upstream',
       gitDescribeOptions: '--tags --always --abbrev=1 --dirty=-d',
-      globalReplace: false
+      globalReplace: false,
+      prereleaseName: 'rc';
     });
 
     var dryRun = grunt.option('dry-run');
@@ -82,8 +82,8 @@ module.exports = function(grunt) {
 
     var globalVersion; // when bumping multiple files
     var gitVersion;    // when bumping using `git describe`
-    var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)(\d+\.\d+\.\d+)(-rc\.?\d+)?([\w-]*)?([\'|\"]?)/i;
-
+    //  FIX ME get opts.prereleaseName in regex
+    var VERSION_REGEXP = '/[\'|\"]?version[\'|\"]?[ ]*:[ ]*([\'|\"])?(\d+\.\d+(\.\d)?(-'+opts.prereleaseName+'.\d+)?)[\'|\"]?/i';
     if (opts.globalReplace) {
       VERSION_REGEXP = new RegExp(VERSION_REGEXP.source, 'gi');
     }
@@ -105,22 +105,10 @@ module.exports = function(grunt) {
       grunt.file.expand(opts.files).forEach(function(file, idx) {
         var version = null;
         var bumpFrom;
-        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, preRelVer, git, suffix) {
-          if(preRelVer !== undefined) {
-            bumpFrom = parsedVersion+preRelVer
-          } else {
-            bumpFrom = parsedVersion
+        var content = grunt.file.read(file).replace(VERSION_REGEXP, function(quote, parsedVersion) {
+           version = exactVersionToSet || gitVersion || semver.inc(parsedVersion, versionType, opts.prereleaseName);
           }
-          if(versionType === 'release') {
-            if(preRelVer === undefined) {
-              grunt.warn('Trying to release a non-prerelease version.  The current version has been released.')
-            } else {
-              version = parsedVersion
-            }
-          } else {
-           version = exactVersionToSet || gitVersion || semver.inc(bumpFrom, versionType, 'rc');
-          }
-          return prefix + version + suffix;
+          return quote + version + quote;
         });
 
         if (!version) {
